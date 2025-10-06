@@ -1,0 +1,100 @@
+local Lighting = game:GetService("Lighting")
+local Terrain = workspace:FindFirstChildOfClass("Terrain")
+local RunService = game:GetService("RunService")
+local Stats = game:GetService("Stats")
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+settings().Rendering.EagerBulkExecution = false
+settings().Network.IncomingReplicationLag = 0
+pcall(function() setfpscap(120) end)
+
+Lighting.GlobalShadows = false
+Lighting.FogEnd = 9e9
+Lighting.Brightness = 1
+Lighting.EnvironmentDiffuseScale = 0
+Lighting.EnvironmentSpecularScale = 0
+for _,v in pairs(Lighting:GetChildren()) do
+	if v:IsA("PostEffect") then
+		v.Enabled = false
+	end
+end
+
+if Terrain then
+	Terrain.WaterWaveSize = 0
+	Terrain.WaterWaveSpeed = 0
+	Terrain.WaterReflectance = 0
+	Terrain.WaterTransparency = 1
+end
+
+for _,obj in pairs(workspace:GetDescendants()) do
+	if obj:IsA("ParticleEmitter") then
+		obj.LightEmission = 0
+		obj.Rate = 1
+		obj.Size = NumberSequence.new(0)
+	elseif obj:IsA("Trail") then
+		obj.Enabled = false
+	elseif obj:IsA("Texture") or obj:IsA("Decal") then
+		obj.Transparency = 1
+	elseif obj:IsA("MeshPart") then
+		obj.Material = Enum.Material.Plastic
+		obj.Reflectance = 0
+	end
+end
+
+workspace.DescendantAdded:Connect(function(obj)
+	if obj:IsA("ParticleEmitter") or obj:IsA("Trail") then
+		obj.Enabled = false
+	elseif obj:IsA("Texture") or obj:IsA("Decal") then
+		obj.Transparency = 1
+	end
+end)
+
+pcall(function()
+	sethiddenproperty(workspace, "InterpolationThrottling", Enum.InterpolationThrottlingMode.Disabled)
+	sethiddenproperty(workspace, "PhysicsSteppingMethod", Enum.PhysicsSteppingMethod.Fixed)
+end)
+
+task.spawn(function()
+	while true do
+		task.wait(5)
+		collectgarbage("collect")
+	end
+end)
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "LagFixDisplay"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
+
+local TextLabel = Instance.new("TextLabel")
+TextLabel.Size = UDim2.new(0, 120, 0, 25)
+TextLabel.Position = UDim2.new(0.02, 0, 0.02, 0)
+TextLabel.BackgroundTransparency = 0.5
+TextLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+TextLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+TextLabel.Font = Enum.Font.Code
+TextLabel.TextSize = 13
+TextLabel.Text = "FPS: -- | PING: --"
+TextLabel.Parent = ScreenGui
+TextLabel.BorderSizePixel = 1
+TextLabel.BorderColor3 = Color3.fromRGB(0, 255, 0)
+TextLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+local fps, last = 0, tick()
+RunService.RenderStepped:Connect(function()
+	fps = 1 / (tick() - last)
+	last = tick()
+	local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+	TextLabel.Text = string.format("FPS: %d | PING: %d", math.floor(fps), ping)
+end)
+
+pcall(function()
+	game.StarterGui:SetCore("SendNotification", {
+		Title = "✅ Fixlag-V2",
+		Text = "Hi anh em nha ",
+		Duration = 5
+	})
+end)
