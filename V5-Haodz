@@ -1,0 +1,183 @@
+pcall(function()
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local Stats = game:GetService("Stats")
+local localPlayer = Players.LocalPlayer
+local playerGui = localPlayer:WaitForChild("PlayerGui")
+
+
+pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 end)
+pcall(function() Lighting.GlobalShadows = false end)
+pcall(function() Lighting.FogEnd = 1000000 end)
+pcall(function() Lighting.Brightness = 1 end)
+pcall(function()
+	for _, e in pairs(Lighting:GetChildren()) do
+		if e:IsA("BlurEffect") or e:IsA("SunRaysEffect") or e:IsA("BloomEffect") or e:IsA("ColorCorrectionEffect") or e:IsA("DepthOfFieldEffect") then
+			pcall(function() e.Enabled = false end)
+		end
+	end
+end)
+
+
+for _, obj in pairs(workspace:GetDescendants()) do
+	pcall(function()
+		if obj:IsA("BasePart") then
+			obj.Material = Enum.Material.SmoothPlastic
+			obj.Reflectance = 0
+
+			local n = obj.Name:lower()
+			if n:find("grass") or n:find("lawn") or n:find("turf") then
+				obj.Color = Color3.fromRGB(85, 255, 85)      -- xanh sáng
+			elseif n:find("rock") or n:find("stone") or n:find("wall") or n:find("mountain") then
+				obj.Color = Color3.fromRGB(180, 180, 180)    -- xám sáng
+			elseif n:find("sand") or n:find("road") or n:find("path") or n:find("platform") then
+				obj.Color = Color3.fromRGB(255, 255, 150)    -- vàng nhạt
+			elseif n:find("water") or n:find("river") then
+				obj.Color = Color3.fromRGB(120, 220, 255)    -- xanh nước nhạt
+			else
+				obj.Color = Color3.fromRGB(200, 200, 200)    -- trắng xám nhẹ
+			end
+		elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Beam") then
+			obj.Enabled = false
+		elseif obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("SurfaceAppearance") then
+			obj.Transparency = 1
+		end
+	end)
+end
+
+
+workspace.DescendantAdded:Connect(function(d)
+	task.defer(function()
+		pcall(function()
+			if d:IsA("BasePart") then
+				d.Material = Enum.Material.SmoothPlastic
+				d.Reflectance = 0
+				local n = d.Name:lower()
+				if n:find("grass") then d.Color = Color3.fromRGB(85,255,85)
+				elseif n:find("rock") or n:find("wall") then d.Color = Color3.fromRGB(180,180,180)
+				elseif n:find("sand") or n:find("road") then d.Color = Color3.fromRGB(255,255,150)
+				elseif n:find("water") then d.Color = Color3.fromRGB(120,220,255)
+				else d.Color = Color3.fromRGB(200,200,200)
+				end
+			elseif d:IsA("ParticleEmitter") or d:IsA("Trail") or d:IsA("Smoke") or d:IsA("Fire") or d:IsA("Beam") then
+				d.Enabled = false
+			elseif d:IsA("Decal") or d:IsA("Texture") or d:IsA("SurfaceAppearance") then
+				d.Transparency = 1
+			end
+		end)
+	end)
+end)
+
+local function stripCharVisuals(c)
+	if not c then return end
+	for _, v in pairs(c:GetDescendants()) do
+		pcall(function()
+			if v:IsA("Accessory") then v:Destroy() end
+			if v:IsA("Decal") or v:IsA("Texture") then v.Transparency = 1 end
+			if v:IsA("MeshPart") then
+				v.Material = Enum.Material.SmoothPlastic
+				v.Color = Color3.fromRGB(180,180,180)
+				v.Reflectance = 0
+			end
+		end)
+	end
+end
+
+if localPlayer.Character then stripCharVisuals(localPlayer.Character) end
+localPlayer.CharacterAdded:Connect(function(c) task.wait(1) stripCharVisuals(c) end)
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "Potato_UI"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.Parent = playerGui
+
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(0, 260, 0, 36)
+label.AnchorPoint = Vector2.new(1, 1)
+label.Position = UDim2.new(1, -12, 1, -12)
+label.BackgroundTransparency = 0.25
+label.BackgroundColor3 = Color3.fromRGB(12,12,12)
+label.BorderSizePixel = 0
+label.TextColor3 = Color3.fromRGB(0,255,0)
+label.Font = Enum.Font.SourceSansBold
+label.TextSize = 16
+label.TextXAlignment = Enum.TextXAlignment.Right
+label.Text = "FPS: ... | Ping: ..."
+label.Parent = gui
+
+task.spawn(function()
+	local last = tick()
+	local frames = 0
+	while true do
+		RunService.RenderStepped:Wait()
+		frames += 1
+		local now = tick()
+		if now - last >= 1 then
+			local fps = math.floor(frames / (now - last) + 0.5)
+			frames = 0
+			last = now
+			local ping = 0
+			pcall(function()
+				local ps = Stats.Network and Stats.Network.ServerStatsItem and Stats.Network.ServerStatsItem["Data Ping"]
+				if ps then ping = math.floor(ps:GetValue()) end
+			end)
+			pcall(function()
+				label.Text = string.format("FPS: %d  |  Ping: %d ms", fps, ping)
+				if fps > 50 and ping < 100 then
+					label.TextColor3 = Color3.fromRGB(0,255,0)
+				elseif fps >= 30 or ping < 200 then
+					label.TextColor3 = Color3.fromRGB(255,200,0)
+				else
+					label.TextColor3 = Color3.fromRGB(255,0,0)
+				end
+			end)
+		end
+	end
+end)
+
+task.spawn(function()
+	local nGui = Instance.new("ScreenGui", playerGui)
+	local frame = Instance.new("Frame", nGui)
+	frame.AnchorPoint = Vector2.new(1, 0)
+	frame.Position = UDim2.new(1.2, 0, 0, 18)
+	frame.Size = UDim2.new(0, 300, 0, 64)
+	frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
+	frame.BackgroundTransparency = 0.12
+	frame.BorderSizePixel = 0
+
+	local title = Instance.new("TextLabel", frame)
+	title.Size = UDim2.new(1, -14, 0, 26)
+	title.Position = UDim2.new(0, 8, 0, 6)
+	title.BackgroundTransparency = 1
+	title.Font = Enum.Font.SourceSansBold
+	title.TextSize = 18
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.TextColor3 = Color3.fromRGB(0,255,0)
+	title.Text = "Fix -Lag V4 hi ae"
+
+	local sub = Instance.new("TextLabel", frame)
+	sub.Size = UDim2.new(1, -14, 0, 22)
+	sub.Position = UDim2.new(0, 8, 0, 34)
+	sub.BackgroundTransparency = 1
+	sub.Font = Enum.Font.SourceSans
+	sub.TextSize = 15
+	sub.TextXAlignment = Enum.TextXAlignment.Left
+	sub.TextColor3 = Color3.fromRGB(255,255,255)
+	sub.Text = "Map brightened • Lag reduced • FPS/Ping visible"
+
+	frame:TweenPosition(UDim2.new(1, -12, 0, 18), "Out", "Quad", 0.4, true)
+	local s = Instance.new("Sound", frame)
+	s.SoundId = "rbxassetid://6026984224"
+	s.Volume = 0.5
+	pcall(function() s:Play() end)
+	task.wait(3.8)
+	frame:TweenPosition(UDim2.new(1.2, 0, 0, 18), "In", "Quad", 0.4, true)
+	task.wait(0.4)
+	pcall(function() nGui:Destroy() end)
+end)
+
+warn("[PotatoV5] Map Color Lite version running successfully.")
+end)
+getgenv().Resolution = { [".gg/scripters"] = 0.44 } local Camera = workspace.CurrentCamera if getgenv().gg_scripters == nil then game:GetService("RunService").RenderStepped:Connect( function() Camera.CFrame = Camera.CFrame * CFrame.new(0, 0, 0, 1, 0, 0, 0, getgenv().Resolution[".gg/scripters"], 0, 0, 0, 1) end ) end getgenv().gg_scripters = "Aori0001"
